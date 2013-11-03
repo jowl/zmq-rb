@@ -130,7 +130,7 @@ module ZMQ
           message.send(sender, :sndmore, :dontwait)
         rescue Errno::EAGAIN
           retry if Time.now - t0 < 1
-          fail "couldn't send message"
+          fail "couldn't send message" # shouldn't happen
         end
         message.send(sender)
         message.recv(socket)
