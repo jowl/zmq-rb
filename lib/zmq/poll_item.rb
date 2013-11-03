@@ -5,24 +5,12 @@ module ZMQ
            :events,  :short,
            :revents, :short
 
-    def socket
-      self[:socket]
-    end
-
     def socket=(socket)
       self[:socket] = socket
     end
 
-    def fd
-      self[:fd]
-    end
-
     def fd=(fd)
       self[:fd] = fd
-    end
-
-    def events
-      self[:events]
     end
 
     def events=(events)
