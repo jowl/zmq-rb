@@ -24,6 +24,31 @@ module ZMQ
       end
     end
 
+    describe '::open' do
+      it 'yields an empty message without arguments' do
+        called = false
+        described_class.open do |message|
+          message.size.should == 0
+          called = true
+        end
+        called.should be_true
+      end
+
+      it 'yields a message with provided argument' do
+        called = false
+        described_class.open('payload') do |message|
+          message.data.should == 'payload'
+          called = true
+        end
+        called.should be_true
+      end
+
+      it 'closes message after block' do
+        message = described_class.open { |message| message }
+        message.should be_closed
+      end
+    end
+
     describe '#close' do
       it 'is idempotent' do
         message.close
