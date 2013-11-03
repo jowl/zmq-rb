@@ -1,22 +1,10 @@
 require 'ffi'
+require 'zmq/libzmq/sockopt_dsl'
 
 module ZMQ
-  module SocketOptionDsl
-    SocketOption = Struct.new(:name, :num, :type)
-
-    def sockopt(name, num, type)
-      @sockopts ||= Hash.new { |_,k| raise ArgumentError, "Unknown socket option: #{k}" }
-      @sockopts[name] = SocketOption.new(name, num, type)
-    end
-
-    def sockopts
-      @sockopts
-    end
-  end
-
   module LibZMQ
     extend FFI::Library
-    extend SocketOptionDsl
+    extend SockoptDsl
 
     ffi_lib 'libzmq'
 
