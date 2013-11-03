@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.platform    = Gem::Platform::RUBY
   s.authors     = ['Joel Segerlind']
   s.email       = ['joel@kogito.se']
-  s.homepage    = 'https://github.com/jowl/bundesstrasse'
+  s.homepage    = 'https://github.com/jowl/zmq-rb'
   s.summary     = 'FFI libzmq bindings'
   s.description = 'Slightly rubyfied ZMQ using FFI'
 
