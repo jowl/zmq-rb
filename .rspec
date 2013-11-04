@@ -1,5 +1,4 @@
 -I lib
 --color
 --format doc
---drb
 spec

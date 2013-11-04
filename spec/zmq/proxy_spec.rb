@@ -31,9 +31,9 @@ module ZMQ
       end
 
       it 'is possible to send messages through proxy' do
+        t = Thread.new { proxy.start }
         frontend.bind('inproc://frontend')
         backend.bind('inproc://backend')
-        t = Thread.new { proxy.start }
         client = context.socket(:req).tap { |s| s.connect(frontend.getsockopt(:last_endpoint)) }
         server = context.socket(:rep).tap { |s| s.connect(backend.getsockopt(:last_endpoint)) }
         request = Message.new('hello')
@@ -45,7 +45,10 @@ module ZMQ
         reply.recv(client)
         reply.data.should == 'world'
         [client, server, request, reply].each(&:close)
-        context.destroy
+        # If context destruction is run in main thread and proxy
+        # thread joins before context is destroyed, Context#destroy
+        # will raise Errno::EINTR.
+        Thread.new { context.destroy }.join
         t.join
       end
     end
