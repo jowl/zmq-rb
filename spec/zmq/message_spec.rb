@@ -2,12 +2,26 @@ require 'spec_helper'
 
 module ZMQ
   describe Message do
+    context_helper = ContextHelper.new
+
+    let :context do
+      context_helper.create_context
+    end
+
+    after :all do
+      if context_helper.context
+        context_helper.destroy
+        context_helper.await_destruction
+      end
+    end
+
     let :message do
       described_class.new
     end
 
     after do
       message.close unless message.closed?
+      sleep 0.01 # libzmq needs some time to cleanup its resources between examples
     end
 
     describe '::new' do
@@ -57,7 +71,7 @@ module ZMQ
     end
 
     describe '#closed?' do
-      it 'returns true if the context has been closed' do
+      it 'returns true if the message has been closed' do
         message.close
         message.should be_closed
       end
@@ -80,10 +94,6 @@ module ZMQ
         described_class.new('payload')
       end
 
-      let :context do
-        Context.new
-      end
-
       let :socket do
         context.socket(:rep)
       end
@@ -96,11 +106,9 @@ module ZMQ
       end
 
       after do
-        message.close unless message.closed?
         unless context.destroyed?
           socket.close unless socket.closed?
           sender.close unless sender.closed?
-          context.destroy
         end
       end
 
@@ -165,10 +173,9 @@ module ZMQ
 
       it 'raises TermError and closes socket if context has been destroyed' do
         socket.connect('tcp://127.0.0.1:7788')
-        t = Thread.new { context.destroy }
-        Thread.pass
+        context_helper.destroy
         expect { message.recv(socket) }.to raise_error(TermError)
-        t.join
+        context_helper.await_destruction
         expect { socket.close }.to raise_error(Errno::ENOTSOCK)
       end
     end
@@ -176,10 +183,6 @@ module ZMQ
     describe '#send' do
       let :message do
         described_class.new('payload')
-      end
-
-      let :context do
-        Context.new
       end
 
       let :socket do
@@ -195,11 +198,9 @@ module ZMQ
       end
 
       after do
-        message.close unless message.closed?
         unless context.destroyed?
           socket.close unless socket.closed?
           receiver.close unless receiver.closed?
-          context.destroy
         end
       end
 
@@ -245,15 +246,16 @@ module ZMQ
           socket.setsockopt(:linger, 0)
         end
         socket.connect('tcp://127.0.0.1:7788')
-        t = Thread.new { context.destroy }
+        context_helper.destroy
         send_loop = proc do
           t0 = Time.now
           until Time.now - t0 > 1
             message.send(socket)
+            sleep 0.1
           end
         end
         expect(send_loop).to raise_error(TermError)
-        t.join
+        context_helper.await_destruction
         expect { socket.close }.to raise_error(Errno::ENOTSOCK)
       end
     end
@@ -267,10 +269,6 @@ module ZMQ
     end
 
     describe '#more' do
-      let :context do
-        Context.new
-      end
-
       let :sender do
         context.socket(:req).tap do |socket|
           socket.setsockopt(:linger, 0)
@@ -286,7 +284,6 @@ module ZMQ
       after do
         sender.close
         receiver.close
-        context.destroy
       end
 
       it 'returns false if it is the final (or only) message part' do
@@ -303,4 +300,3 @@ module ZMQ
     end
   end
 end
-

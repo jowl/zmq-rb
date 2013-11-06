@@ -2,8 +2,21 @@ require 'spec_helper'
 
 module ZMQ
   describe Socket do
+    context_helper = ContextHelper.new
+
+    let :context_helper do
+      context_helper
+    end
+
     let :context do
-      Context.new
+      context_helper.create_context
+    end
+
+    after :all do
+      if context_helper.context
+        context_helper.destroy
+        context_helper.await_destruction
+      end
     end
 
     let :socket do
@@ -13,17 +26,17 @@ module ZMQ
     after do
       unless context.destroyed?
         socket.close unless socket.closed?
-        context.destroy
       end
+      sleep 0.01 # libzmq needs some time to cleanup its resources between examples
     end
 
     def self.term_error(&block)
       it "raises TermError and closes socket if context has been destroyed" do
         socket
-        t = Thread.new { context.destroy }
-        sleep 0.1 # there's no way of nowing when the context destruction has begun
+        context_helper.destroy
+        sleep 0.1 # there's no way of knowing when the context destruction has begun
         expect { instance_exec(&block) }.to raise_error(TermError)
-        t.join
+        context_helper.await_destruction
         expect { socket.close }.to raise_error(Errno::ENOTSOCK)
       end
     end
@@ -193,10 +206,9 @@ module ZMQ
 
         it "raises TermError and closes socket if context has been destroyed" do
           receiver.close
-          t = Thread.new { context.destroy }
-          Thread.pass
+          context_helper.destroy
           expect { sender.send('') }.to raise_error(TermError)
-          t.join
+          context_helper.await_destruction
           expect { sender.close }.to raise_error(Errno::ENOTSOCK)
         end
       end
@@ -223,10 +235,9 @@ module ZMQ
 
         it "raises TermError and closes socket if context has been destroyed" do
           sender.close
-          t = Thread.new { context.destroy }
-          Thread.pass
+          context_helper.destroy
           expect { receiver.recv(1) }.to raise_error(TermError)
-          t.join
+          context_helper.await_destruction
           expect { receiver.close }.to raise_error(Errno::ENOTSOCK)
         end
       end
