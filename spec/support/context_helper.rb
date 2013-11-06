@@ -28,6 +28,11 @@ class ContextHelper
     end
   end
 
+  def destroy!
+    destroy
+    await_destruction
+  end
+
   def await_destruction(timeout=1)
     destruction = Thread.new { @queue.pop }.join(timeout)
     @context = nil

@@ -9,10 +9,7 @@ module ZMQ
     end
 
     after :all do
-      if context_helper.context
-        context_helper.destroy
-        context_helper.await_destruction
-      end
+      context_helper.destroy!
     end
 
     let :message do

@@ -48,8 +48,7 @@ module ZMQ
         # If context destruction is run in main thread and proxy
         # thread joins before context is destroyed, Context#destroy
         # will raise Errno::EINTR.
-        context_helper.destroy
-        context_helper.await_destruction
+        context_helper.destroy!
         proxy_thread.join
       end
     end
