@@ -2,9 +2,10 @@ require 'spec_helper'
 
 module ZMQ
   describe Proxy do
+    context_helper = ContextHelper.new
 
     let :context do
-      Context.new
+      context_helper.create_context
     end
 
     let :frontend do
@@ -21,17 +22,16 @@ module ZMQ
 
     describe '#start' do
       it 'closes frontend and backend sockets on termination' do
-        t = Thread.new { context.destroy }
-        Thread.pass
+        context_helper.destroy
         proxy.start
         [frontend, backend].each do |socket|
           expect { socket.close }.to raise_error(Errno::ENOTSOCK)
         end
-        t.join
+        context_helper.await_destruction
       end
 
       it 'is possible to send messages through proxy' do
-        t = Thread.new { proxy.start }
+        proxy_thread = Thread.new { proxy.start }
         frontend.bind('inproc://frontend')
         backend.bind('inproc://backend')
         client = context.socket(:req).tap { |s| s.connect(frontend.getsockopt(:last_endpoint)) }
@@ -48,8 +48,9 @@ module ZMQ
         # If context destruction is run in main thread and proxy
         # thread joins before context is destroyed, Context#destroy
         # will raise Errno::EINTR.
-        Thread.new { context.destroy }.join
-        t.join
+        context_helper.destroy
+        context_helper.await_destruction
+        proxy_thread.join
       end
     end
   end
